@@ -6,12 +6,59 @@ import Lecture4
 import Test.QuickCheck
 
 -- =============================================================================
+-- EXERCISE 1
+-- =============================================================================
+
+-- See generators.hs
+--
+-- module Generators where
+--
+-- import Test.QuickCheck
+-- import System.Random
+-- import SetOrd
+-- import Data.List
+--
+-- -- QuickCheck arbitrary definition for Set
+-- -- It first creates a list and then pass the list in the type constructor of Set
+-- -- We also make shure that the set is sorted and all duplicates are removed
+--
+-- -- Generate samples by: $ generate arbitrary :: IO (Set Int) or
+-- -- $ sample (arbitrary :: Gen (Set Int))
+-- instance (Arbitrary a, Ord a, Eq a) => Arbitrary (Set a) where
+--   arbitrary = do
+--     list <- arbitrary
+--     return (Set (nub(sort list)))
+--
+-- -- Custom generator for Set
+-- -- We also make shure that the set is sorted and all duplicates are removed
+--
+-- -- Generate samples by: $ setGenerator (1, 10) (1, 10)
+-- setGenerator :: (Int, Int) -> (Int, Int) -> IO (Set Int)
+-- setGenerator lengthRange elementRange = do
+--   listLength <- randomRIO lengthRange -- Get a radom list length in the given range
+--   randomList <- listGenerator listLength elementRange -- Create the list
+--   return (Set (nub (sort randomList))) -- Create a Set of the list
+--
+-- -- Custom generator for list using IO
+-- -- We also make shure that the set is sorted and all duplicates are removed
+--
+-- -- Generate samples by: $ listGenerator 10 (1, 10)
+-- listGenerator :: Int -> (Int, Int) -> IO [Int]
+-- listGenerator 0 _ = return [] -- Edge case
+-- listGenerator listLength elementRange = do
+--   randomElement <- randomRIO elementRange -- Get a random element in the given range
+--   randomList <- listGenerator (listLength - 1) elementRange -- recursion
+--   return (randomElement : randomList) -- Create a sorted list
+--
+
+
+-- =============================================================================
 -- EXERCISE 2
 -- =============================================================================
 -- RESULTS
 
--- *Main> exerciseTwo 
--- "Exercise 01"
+-- "Exercise 02"
+
 -- "Intersection test:"
 -- "Commutative Property:"
 -- +++ OK, passed 100 tests.
@@ -32,7 +79,7 @@ import Test.QuickCheck
 -- "A - B = empty, if A is a subset of B"
 -- +++ OK, passed 100 tests.
 -- "A-B = A or B-A = B if A and B are Disjoint sets"
--- +++ OK, passed 100 tests; 489 discarded.
+-- +++ OK, passed 100 tests; 412 discarded.
 -- "Union test:"
 -- "Commutative Property:"
 -- +++ OK, passed 100 tests.
@@ -69,6 +116,9 @@ import Test.QuickCheck
 -- "Identity Property:"
 -- "A `union` empty && empty `union` A:"
 -- "All 100 tests passed!"
+
+
+
 
 -- =============================================================================
 -- IMPLEMENTATION
@@ -196,7 +246,7 @@ disjoint (Set (x:xs)) set2 =
   (not (x `inSet` set2):disjoint (Set xs) set2)
 
 -- Check if all the elements in list are True.
-isDisjoint set1 set2 = all (==True) (disjoint set1 set2)
+isDisjoint set1 set2 = and (disjoint set1 set2)
 
 -- Tests:
 -- Test commutativeProperty for intersectSet function
@@ -328,7 +378,7 @@ testPropertyDisjoint n =
 --------------------------
 
 exerciseTwo = do
-  print "Exercise 01"
+  print "Exercise 02"
 
   print "Intersection test:"
   print "Commutative Property:"
@@ -396,6 +446,7 @@ exerciseTwo = do
   print "Identity Property:"
   print "A `union` empty && empty `union` A:"
   testPropertyId' 100
+
 -- =============================================================================
 -- TIME SPENT ~ 10 hours
 -- =============================================================================
@@ -417,11 +468,15 @@ exerciseTwo = do
 -- if for all x, y ∈ A: if xRy then yRx.
 
 type Rel a = [(a,a)]
-
+-- takes a set of Relations, "Loops" through it and consumes elements untill the input list is empty.
+-- if the flipped element is already in the output set, we ignore it and check next element.
+-- if the flipped element is not in the output set, add it to the output set, and check next element.
+-- the output is a symetric closure of the input set.
 symClos :: Ord a => Rel a -> Rel a
--- Swap tuple and check if in list else add to new list
--- and concat with original list
-symClos xs = sort (xs ++ sort[swap x | x <- xs, notElem (swap x) xs])
+symClos [] = []
+symClos total@((a,b):xs) = if not ((b,a) `elem` total) then sort (nub (((a,b):(b,a):(symClos xs)))) else (sort (nub (((a,b):symClos xs))))
+
+-- These are tests for our own implementation. The tests for grading are done in exercise 6
 
 exerciseThree = do
   let exampleOne = [(1,2),(2,3),(3,4)]
@@ -429,6 +484,7 @@ exerciseThree = do
   putStrLn $ "Input " ++ show exampleOne
   putStrLn $ "Correct output " ++ show resultOne
   putStrLn $ "Result: " ++ show (symClos exampleOne)
+  putStrLn $ "Correct: " ++ show (symClos exampleOne == resultOne)
 -- =============================================================================
 -- TIME SPENT ~ 2 hour
 -- =============================================================================
@@ -476,10 +532,10 @@ fstTupleElem :: Eq a => a -> Rel a -> Bool
 fstTupleElem _ [] = False
 fstTupleElem n (x:xs) = (n == fst x) || fstTupleElem n xs
 
-prop_isSerialCheck :: [Int] -> Rel Int -> Property
-prop_isSerialCheck xs ys = length xs > 2 && length ys > 2
+prop_isNotSerialCheck :: [Int] -> Rel Int -> Property
+prop_isNotSerialCheck xs ys = length xs > 2 && length ys > 2
   && all (\tuple -> elem (fst tuple) xs && elem (snd tuple) xs) ys ==>
-    isSerial xs ys
+    not (isSerial xs ys)
 
 
 -- R = {(x, y) | x = y(mod n)}  n > 0
@@ -508,7 +564,7 @@ exerciseFour = do
   putStrLn $ "relation B: " ++ show relationC
   putStrLn $ "in domain: " ++ show domainC
   putStrLn $ "isSerial?: " ++ show (isSerial domainC relationC)
-  quickCheck prop_isSerialCheck
+  quickCheck prop_isNotSerialCheck
 -- =============================================================================
 -- TIME SPENT ~ 5 hour
 -- =============================================================================
@@ -550,6 +606,8 @@ trClos :: Ord a => Rel a -> Rel a
 -- Do this in recursion, because new pairs can be formed that form the relation (x,y) ∈ A && (y,z) ∈ A where y == y
 -- Run recursion till the result can no longer be sorted
 trClos = fp (\xs -> sort (nub (xs ++ xs @@ xs)))
+
+-- These are tests for our own implementation. The tests for grading are done in exercise 6
 
 exerciseFive = do
     putStrLn "Example from exercise 6"
@@ -594,15 +652,23 @@ exerciseFive = do
 checkSymmetry :: Ord a => Rel a -> Bool
 -- Property: Get every pair for symmetry list and check if the swap of elements is in symmetry list
 -- (x,y) => swap => (y,x)
-checkSymmetry xs = and [elem (swap x) symmetry  | x <- symmetry]
+-- xs has to be a subset of symClos xs (won't be tested, reason below.)
+-- the length of symClos xs has to be atleast the length of xs (won't be tested) (Which is true by defenition, since symClos contains all elements of xs (tested below.))
+-- For each element (x,y) of xs, symClos xs should contain (x,y) and (y,x), nothing more (if this is true, it is a subset by defenition since it contains all the elements of xs.)
+checkSymmetry xs = (and [elem (swap x) symmetry && elem (x) symmetry | x <- symmetry]) && (subSet (list2set xs) (list2set symmetry))
   where symmetry = symClos xs
 
 checkTransitivity :: Ord a => Rel a -> Bool
 -- Property: Get every pair for transitive list and check if there is a pair (a,b) and a pair (c,d)
 -- and b == d then there must be a pair (a, d) in the transitive list in order to let it be transitive
-checkTransitivity xs = and [elem (a,d) transitive | (a,b) <- transitive, (c,d) <- transitive, b == c]
+-- xs has to be a subset of trClos xs (won't be tested, reason below.)
+-- the length of trClos xs has to be atleast the length of xs  (won't be tested) (Which is true by defenition, since trClos contains all elements of xs (tested below.))
+-- For each element (x,y) of xs, trClos xs should contain (x,y) (if this is true, it is a subset by defenition since it contains all the elements of xs.)
+checkTransitivity xs = (and [elem (a,d) transitive && elem (x) transitive | (a,b) <- transitive, (c,d) <- transitive, b == c, x <- xs])
   where
     transitive = trClos xs
+
+-- all tests passed. This test can be automated, since our implementation is an automated quickCheck test for these properties.
 
 exerciseSix = do
     print "QuickCheck for symClos function"
@@ -653,3 +719,40 @@ exerciseSeven = do
 -- =============================================================================
 -- TIME SPENT ~ 1 hour
 -- =============================================================================
+
+
+
+-- Exercise 9 (Bonus Euler)
+
+
+-- Problem 30 Euler
+-- The upper and lowerbound of the brute Force algorithm is given here: https://www.xarg.org/puzzle/project-euler/problem-30/
+
+-- Input of our function
+inputList :: [Integer]
+inputList = [10..355000]
+
+-- Takes an Int, returns each digit in a list.
+digits :: Integer -> [Integer]
+digits n = map (\x -> read [x] :: Integer) (show n)
+
+-- Takes the sum of all the digits to the power of 5
+pow5 n = sum (map (^5) (digits n))
+
+-- Goes through whole input list, returns sum of powers of 5 where int == digits ^5
+fifthPow :: Integer
+fifthPow = sum [if (x == pow5 x ) then x else 0 | x <- inputList]
+
+exerciseNine = do
+  fifthPow  -- Takes ~10 secs
+
+-- Time: 1 Hour
+
+main = do
+  exerciseTwo
+  exerciseThree
+  exerciseFour
+  exerciseFive
+  exerciseSix
+  exerciseSeven
+  -- exerciseNine
