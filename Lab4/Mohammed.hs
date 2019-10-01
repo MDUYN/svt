@@ -129,7 +129,7 @@ disjoint (Set (x:xs)) set2 =
   (not (x `inSet` set2):disjoint (Set xs) set2)
 
 -- Check if all the elements in list are True.
-isDisjoint set1 set2 = all (==True) (disjoint set1 set2)
+isDisjoint set1 set2 = and (disjoint set1 set2)
 
 -- Tests:
 -- Test commutativeProperty for intersectSet function
@@ -381,6 +381,8 @@ trClos xs
   | otherwise = trClos (sort (nub (xs ++ (xs @@ xs))))
     where nextClos = sort (nub (xs ++ (xs @@ xs)))
 
+-- Time: 1 hour 15 minutes
+
 
 -- Exercise 9 (Bonus Euler)
 
@@ -406,6 +408,8 @@ fifthPow = sum [if (x == pow5 x ) then x else 0 | x <- inputList]
 exerciseNine = do
   fifthPow  -- Takes ~10 secs
 
+-- Time: 1 Hour
+
 -- =============================================================================
 -- EXERSICE 6
 -- =============================================================================
@@ -420,15 +424,23 @@ exerciseNine = do
 checkSymmetry :: Ord a => Rel a -> Bool
 -- Property: Get every pair for symmetry list and check if the swap of elements is in symmetry list
 -- (x,y) => swap => (y,x)
-checkSymmetry xs = and [elem (swap x) symmetry  | x <- symmetry]
+-- xs has to be a subset of symClos xs (won't be tested, reason below.)
+-- the length of symClos xs has to be atleast the length of xs (won't be tested) (Which is true by defenition, since symClos contains all elements of xs (tested below.))
+-- For each element (x,y) of xs, symClos xs should contain (x,y) and (y,x), nothing more (if this is true, it is a subset by defenition since it contains all the elements of xs.)
+checkSymmetry xs = (and [elem (swap x) symmetry && elem (x) symmetry | x <- symmetry]) && (subSet (list2set xs) (list2set symmetry))
   where symmetry = symClos xs
 
 checkTransitivity :: Ord a => Rel a -> Bool
 -- Property: Get every pair for transitive list and check if there is a pair (a,b) and a pair (c,d)
 -- and b == d then there must be a pair (a, d) in the transitive list in order to let it be transitive
-checkTransitivity xs = and [elem (a,d) transitive | (a,b) <- transitive, (c,d) <- transitive, b == c]
+-- xs has to be a subset of trClos xs (won't be tested, reason below.)
+-- the length of trClos xs has to be atleast the length of xs  (won't be tested) (Which is true by defenition, since trClos contains all elements of xs (tested below.))
+-- For each element (x,y) of xs, trClos xs should contain (x,y) (if this is true, it is a subset by defenition since it contains all the elements of xs.)
+checkTransitivity xs = (and [elem (a,d) transitive && elem (x) transitive | (a,b) <- transitive, (c,d) <- transitive, b == c, x <- xs])
   where
     transitive = trClos xs
+
+-- all tests passed. This test can be automated, since our implementation is an automated quickCheck test for these properties.
 
 exerciseSix = do
     print "QuickCheck for symClos function"
