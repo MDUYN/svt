@@ -4,6 +4,20 @@ import Data.Tuple
 import Data.List
 import Lecture4
 import Test.QuickCheck
+-- =============================================================================
+-- PREREQUISITES
+-- =============================================================================
+
+-- Most of the examples where very clear, but there where a few difficult to
+-- understand concepts.
+
+-- The halting problem described at page 122.
+
+-- funny x | halts x x = undefined-- Caution:this
+--         | otherwise = True-- willnot
+
+-- We see that the function will not execute correctly, but don't see
+-- functionality in it.
 
 -- =============================================================================
 -- EXERCISE 1
