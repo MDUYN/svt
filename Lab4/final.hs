@@ -755,4 +755,4 @@ main = do
   exerciseFive
   exerciseSix
   exerciseSeven
-  print "Running exerciseNine gives me an IO error, the function can be tested by typing \"exerciseNine\" in the command line "-- exerciseNine
+  print "Running exerciseNine HERE gives me an IO error, the function can be tested by typing \"exerciseNine\" in the command line manually (WORKS!) " -- exerciseNine
