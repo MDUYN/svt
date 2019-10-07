@@ -10,7 +10,7 @@ import Formatting
 import Formatting.Clock
 import Test.QuickCheck.Monadic
 import Control.Monad
-
+import Data.Monoid
 
 -- =============================================================================
 -- EXERCISE 1
@@ -88,48 +88,69 @@ excerciseOne = do
 -- =============================================================================
 -- RESULTS
 
--- Use the list of composite numbers to test Fermat's primality check.
--- What is the least composite number that you can find that fools the check, f
--- or prime_tests_F k with k=1,2,3 ? What happens if you increase k?
-
--- We will pass all a list composite numbers to the function: primeTestsF
-
--- With a given k it will do the fermat primality check k times with a radom
--- number between 1 ≤ a < p and check a^p-1 ≡ 1 mod p
-fermatCheck :: Int -> Int -> [Integer] -> IO Integer
-fermatCheck k index composites = do
-  prime <- primeTestsF k n
-  if prime then
-    return n
-  else
-    do fermatCheck k (index + 1) composites
-  -- If it passed the tests get the next number in the list
-  where n = composites !! index
-
-checkFermatsPrimality :: Int -> Int -> IO Integer
-checkFermatsPrimality n k = do
-  -- Get the first failing number in the composites list
-  firstFail <- fermatCheck k 0 composites
-  findSmallestFermatFail (n - 1) k firstFail composites
-
-findSmallestFermatFail :: Int -> Int -> Integer -> [Integer] -> IO Integer
-findSmallestFermatFail 0 k prev composites = do
-  new <- fermatCheck k 0 composites
-  return (min prev new)
-findSmallestFermatFail n k prev composites  = do
-  smallerFail <- fermatCheck k 0 composites
-  findSmallestFermatFail (n - 1) k (min prev smallerFail) composites
-
-
-
 
 -- =============================================================================
 -- IMPLEMENTATION
 
+-- Use the list of composite numbers to test Fermat's primality check.
+-- What is the least composite number that you can find that fools the check, f
+-- or prime_tests_F k with k=1,2,3 ? What happens if you increase k?
+
+-- We make use of the list of composite prime numbers, this means that the numbers
+-- in this list are not prime but are made by composition of primes, e.g.
+-- the first 10 numbers are: [4,6,8,9,10,12,14,15,16,18]
+-- These numbers are not prime, but we need to check if they pass the fermats
+-- prime number test
+
+-- K is the amount of times that we will repeat the fermat test
+-- With a given k it will do the fermat primality check k times with a radom
+-- number between 1 ≤ a < p and check a^p-1 ≡ 1 mod p
+-- The function will return the first number in the list that will pass the
+-- check
+
+-- Limitations:
+-- An ideal function would filter the whole list, but we could not figure that
+-- out, because we where working with monats
+getFirstFermatPrime :: [Integer] -> Int -> IO Integer
+getFirstFermatPrime (x:xs) k = do
+  -- for a given k, check if it passes the tests, which implies it is prime
+  -- by the fermats check
+  prime <- primeTestsF k x
+
+  if prime then
+    return x
+  else
+    -- Find a number that passes the test
+    getFirstFermatPrime xs k
+
+-- This function is really naive in its implementation
+-- We give it a k and say repeat a 100 times finding a prime with
+-- fermats check
+minimumFalsePositiveComposite :: Int -> IO Integer
+minimumFalsePositiveComposite k = do
+  -- Build the list of false positives by running the function getFirstFermatPrime
+  -- 100 times, we basicly hope that it will find new false postives
+  x <- sequence [getFirstFermatPrime composites k | x <- [1..100]]
+  -- Return the minimum false positve
+  return (minimum x)
+
+exerciseThree = do
+    putStrLn "Minimum composite false positive by trying fermats"
+    putStrLn "check 1 (k = 1) time for every number in the list of composites [1..100]:"
+    resultOne <- minimumFalsePositiveComposite 1
+    putStrLn "Minimum composite false positive by trying fermats"
+    putStrLn "check 2 (k = 2) times for every number in the list of composites [1..100]:"
+    resultTwo <- minimumFalsePositiveComposite 2
+    putStrLn $ "Minumum : " ++ show resultTwo
+    putStrLn "Minimum composite false positive by trying fermats"
+    putStrLn "check 2 (k = 2) times for every number in the list of composites [1..100]:"
+    resultThree <- minimumFalsePositiveComposite 3
+    putStrLn $ "Minumum : " ++ show resultThree
+
 -- =============================================================================
 
 -- =============================================================================
--- TIME SPENT
+-- TIME SPENT ~ 4 hours
 -- =============================================================================
 
 
